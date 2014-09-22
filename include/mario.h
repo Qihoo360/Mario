@@ -1,0 +1,70 @@
+#ifndef __MARIO_H_
+#define __MARIO_H_
+
+#include "xdebug.h"
+#include "env.h"
+#include "status.h"
+#include "port.h"
+#include <deque>
+#include "consumer.h"
+
+namespace mario {
+
+class Producer;
+class Consumer;
+class Version;
+
+class Mario
+{
+public:
+    Mario(uint32_t consumer_num, Consumer::Handler *h);
+    ~Mario();
+    Status Put(const std::string &item);
+    Status Get();
+
+    Env *env() { return env_; }
+    Logger *info_log() { return info_log_; }
+    WritableFile *writefile() { return writefile_; }
+
+    Consumer *consumer() { return consumer_; }
+
+private:
+
+    struct Writer;
+    Producer *producer_;
+    Consumer *consumer_;
+    uint32_t consumer_num_;
+    uint64_t item_num_;
+    Env* env_;
+    SequentialFile *readfile_;
+    WritableFile *writefile_;
+    RWFile *versionfile_;
+    Version* version_;
+    Logger *info_log_;
+    port::Mutex mutex_;
+    port::CondVar bg_cv_;
+    uint32_t file_num_;
+
+    std::string filename_;
+
+    static void SplitLogWork(void* m);
+    void SplitLogCall();
+
+    static void BGWork(void* m);
+    void BackgroundCall();
+
+    std::deque<Writer *> writers_;
+
+    char* pool_;
+    bool exit_all_consume_;
+    const std::string mario_path_;
+
+    // No copying allowed
+    Mario(const Mario&);
+    void operator=(const Mario&);
+
+};
+
+} // namespace mario
+
+#endif
