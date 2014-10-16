@@ -29,7 +29,8 @@ public:
 #endif
 
     ~Consumer();
-    Status Consume();
+    Status Consume(std::string &scratch);
+    Handler *h() { return h_; }
 
 private:
     Handler *h_;

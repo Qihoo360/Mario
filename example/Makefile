@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -Wall -W -DDEBUG -g -O0 -D__XDEBUG__ -std=c++0x -DMARIO_MMAP
+CXXFLAGS = -Wall -W -DDEBUG -g -O2 -D__XDEBUG__ -std=c++0x -DMARIO_MMAP
 OBJECT = mario
 SRC_DIR = ./
 

@@ -135,14 +135,14 @@ unsigned int Consumer::ReadPhysicalRecord(Slice *result)
 
 Consumer::Handler::~Handler() {};
 
-Status Consumer::Consume()
+Status Consumer::Consume(std::string &scratch)
 {
     Status s;
     if (last_record_offset_ < initial_offset_) {
         return Status::IOError("last_record_offset exceed");
     }
 
-    std::string scratch;
+    scratch = "";
 
     Slice fragment;
     while (true) {
@@ -182,7 +182,6 @@ Status Consumer::Consume()
         }
         // TODO:do handler here
         if (s.ok()) {
-            h_->processMsg(scratch);
             break;
         }
     }

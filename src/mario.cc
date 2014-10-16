@@ -156,6 +156,7 @@ void Mario::BGWork(void *m)
 
 void Mario::BackgroundCall()
 {
+    std::string scratch("");
     while (1) {
         {
         mutex_.Lock();
@@ -174,7 +175,8 @@ void Mario::BackgroundCall()
             }
             bg_cv_.Wait();
         }
-        consumer_->Consume();
+        scratch = "";
+        consumer_->Consume(scratch);
 #if defined(MARIO_MMAP)
         version_->minus_item_num();
         version_->StableSave();
@@ -184,6 +186,7 @@ void Mario::BackgroundCall()
         item_num_--;
 #endif
         mutex_.Unlock();
+        consumer_->h()->processMsg(scratch);
         }
     }
     return ;
@@ -218,7 +221,7 @@ Status Mario::Get()
 
     std::string scratch;
     MutexLock l(&mutex_);
-    s = consumer_->Consume();
+    s = consumer_->Consume(scratch);
 
     return s;
 }
