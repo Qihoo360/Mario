@@ -67,7 +67,7 @@ int main()
     using namespace std;
     mario::Status s;
     FileHandler *fh = new FileHandler();
-    mario::Mario *m = new mario::Mario(0, fh);
+    mario::Mario *m = new mario::Mario(1, fh);
     mario::Slice result;
 
 
@@ -103,7 +103,7 @@ int main()
     std::string item = "sty";
     std::string item1;
     std::string t1;
-    while (i < 200000000) {
+    while (i < 2000) {
         // item1 = item + char((i%32) + 'a');
         s = m->Put(item);
         // log_info("Status %s", s.ToString().c_str());

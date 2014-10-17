@@ -10,12 +10,10 @@ OBJECT = mario
 SRC_DIR = ./src
 TEST_DIR = ./test
 OUTPUT = ./output
-PROTOBUF_DIR = /usr/local/lib/
 GTEST_DIR = ./gtest-1.7.0/
 
 LIB_PATH = -L./
-LIBS = $(PROTOBUF_DIR)/libprotobuf.a \
-	   $(GTEST_DIR)/libgtest.a \
+LIBS = $(GTEST_DIR)/libgtest.a \
 	   -lpthread
 
 
@@ -54,9 +52,7 @@ $(LIBRARY): $(OBJS)
 	mkdir $(OUTPUT)/include
 	mkdir $(OUTPUT)/lib
 	rm -rf $@
-	ar -x $(PROTOBUF_DIR)/libprotobuf.a
-	ar -rcs $@ $(OBJS) ./*.o
-	rm -rf *.o
+	ar -rcs $@ $(OBJS)
 	cp -r ./include $(OUTPUT)/
 	mv ./libmario.a $(OUTPUT)/lib/
 
