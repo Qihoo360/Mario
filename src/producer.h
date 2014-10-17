@@ -2,8 +2,8 @@
 #define __MARIO_PRODUCER_H_
 
 #include "env.h"
-#include "status.h"
 #include "mario_item.h"
+#include "status.h"
 
 namespace mario {
 

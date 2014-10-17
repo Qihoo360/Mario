@@ -1,12 +1,12 @@
 #ifndef __MARIO_H_
 #define __MARIO_H_
 
-#include "xdebug.h"
-#include "env.h"
-#include "status.h"
-#include "port.h"
 #include <deque>
 #include "consumer.h"
+#include "env.h"
+#include "port.h"
+#include "status.h"
+#include "xdebug.h"
 
 namespace mario {
 
