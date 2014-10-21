@@ -69,6 +69,7 @@ clean:
 	rm -rf $(SRC_DIR)/*.o
 	rm -rf $(TEST_DIR)/*.o
 	rm -rf $(OUTPUT)/*
+	rm -rf $(OUTPUT)
 	rm -rf $(LIBRARY)
 	rm -rf $(OBJECT)
 	rm -rf $(TESTS)
