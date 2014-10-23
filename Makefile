@@ -55,6 +55,7 @@ $(LIBRARY): $(OBJS)
 	ar -rcs $@ $(OBJS)
 	cp -r ./include $(OUTPUT)/
 	mv ./libmario.a $(OUTPUT)/lib/
+	make -C example
 
 $(OBJECT): $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(INCLUDE_PATH) $(LIB_PATH) $(LIBS)
@@ -66,6 +67,7 @@ $(TOBJS): %.o : %.cc
 	$(CXX) $(CXXFLAGS) -c $< -o $@ $(INCLUDE_PATH) 
 
 clean: 
+	make -C example clean
 	rm -rf $(SRC_DIR)/*.o
 	rm -rf $(TEST_DIR)/*.o
 	rm -rf $(OUTPUT)/*

@@ -38,5 +38,6 @@ $(LIBRARY): $(OBJS)
 
 
 clean: 
+	rm -rf $(SRC_DIR)/log
 	rm -f $(SRC_DIR)/*.o
 	rm -rf $(OBJECT)
