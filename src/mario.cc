@@ -33,10 +33,7 @@ Mario::Mario(uint32_t consumer_num, Consumer::Handler *h)
     exit_all_consume_(false),
     mario_path_("./log")
 {
-    filename_ = mario_path_ + "/write2file";
-    const std::string manifest = mario_path_ + "/manifest";
 
-    env_->CreateDir(mario_path_);
     env_->set_thread_num(consumer_num_);
     // env_->NewLogger("./mario.log", &info_log_);
 
@@ -52,6 +49,9 @@ Mario::Mario(uint32_t consumer_num, Consumer::Handler *h)
 
 #if defined(MARIO_MMAP)
 
+    filename_ = mario_path_ + "/write2file";
+    const std::string manifest = mario_path_ + "/manifest";
+    env_->CreateDir(mario_path_);
     Status s;
     if (!env_->FileExists(filename_)) {
         log_info("Not exist file ");
