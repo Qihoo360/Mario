@@ -18,8 +18,9 @@ class FileHandler : public mario::Consumer::Handler
 {
     public:
         FileHandler() {};
-        virtual void processMsg(const std::string &item) {
+        virtual bool processMsg(const std::string &item) {
             log_info("consume data %s", item.data());
+            return true;
         }
 };
 
@@ -39,6 +40,8 @@ int main()
     mario::Mario *m = new mario::Mario(1, fh);
 
     std::string item = "Put data in mario";
+    s = m->Put(item);
+    s = m->Put(item);
     s = m->Put(item);
     if (!s.ok()) {
         log_err("Put error");

@@ -14,16 +14,16 @@ enum RecordType {
 };
 
 // The block size that we read and write from write2file
-static const size_t kBlockSize = 1048576;
+static const size_t kBlockSize = 64 * 1024;
 
 // Header is Type(1 byte), length (2 bytes)
 static const size_t kHeaderSize = 1 + 2;
 
 // The size of memory when we use memory mode
-static const uint64_t kPoolSize = 1024 * 1024 * 256;
+static const uint64_t kPoolSize = 1024 * 1024 * 1024 * 2;
 
 // The size of write2file when we need to rotate
-static const uint64_t kMmapSize = 1024 * 1;
+static const uint64_t kMmapSize = 1024 * 1024 * 1024;
 
 }
 

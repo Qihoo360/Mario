@@ -16,7 +16,7 @@ public:
     {
     public:
         virtual ~Handler();
-        virtual void processMsg(const std::string &item) = 0;
+        virtual bool processMsg(const std::string &item) = 0;
     };
 
 #if defined(MARIO_MEMORY)

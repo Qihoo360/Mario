@@ -111,10 +111,6 @@ unsigned int Consumer::ReadPhysicalRecord(Slice *result)
     const uint32_t b = static_cast<uint32_t>(header[1]) & 0xff;
     const unsigned int type = header[2];
     const uint32_t length = a | (b << 8);
-    // log_info("version offset %d item_num %d length %d", version_->offset(), version_->item_num(), length);
-    // if (length != 4) {
-    // log_info("%d %d", a, b);
-    // }
     if (type == kZeroType || length == 0) {
         buffer_.clear();
         return kOldRecord;

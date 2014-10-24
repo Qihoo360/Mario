@@ -186,7 +186,8 @@ void Mario::BackgroundCall()
         item_num_--;
 #endif
         mutex_.Unlock();
-        consumer_->h()->processMsg(scratch);
+        while (consumer_->h()->processMsg(scratch) == false) {
+        }
         }
     }
     return ;
@@ -228,28 +229,3 @@ Status Mario::Get()
 
 
 } // namespace mario
-
-std::string itos(unsigned long num)
-{
-    std::string buf = "";
-    unsigned long mod;
-    while (num > 0) {
-        mod = num % 10;
-        buf = char(mod + '0') + buf;
-        num /= 10;
-    }
-    return buf;
-}
-using namespace mario;
-
-
-void *func(void *arg)
-{
-    mario::Status s;
-    mario::Mario* m = reinterpret_cast<Mario*>(arg);
-    for (int i = 0; i < 100; i++) {
-        s = m->Put(itos(pthread_self()) + "" + itos(i) + "chenzongzhi\n");
-    }
-    return NULL;
-}
-
