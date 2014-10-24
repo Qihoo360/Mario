@@ -12,9 +12,11 @@ So mario library can easily solve your problem. You just need the implement your
 #### Two engine type
 
 1. memory
+
 This type will leave the cache buffer in memory. The advantage is the Insert speed is faster. But when your application shutdown before you have consume the data in the buffer, The data will lost.
 
 2. file
+
 Thie type will make a write2file in the local log path. When you put message, you will write the data in the write2file. The write is append operator, so it is also very fast. The application don't initiativly flush the data to disk, it flush according to the operator system.
 
     If there is still some data havn't been consumed after shutdown you application, it doesn't matter. it will leave a menifest file in the log path, after you restart you application. it will first get the menifest file, and get the offset. Then it consume the data from the offset
