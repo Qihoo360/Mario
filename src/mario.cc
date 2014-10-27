@@ -186,8 +186,7 @@ void Mario::BackgroundCall()
         item_num_--;
 #endif
         mutex_.Unlock();
-        while (consumer_->h()->processMsg(scratch) == false) {
-        }
+        consumer_->h()->processMsg(scratch);
         }
     }
     return ;
