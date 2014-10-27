@@ -29,14 +29,15 @@ inline void Producer::MovePoint(const char *src, const uint64_t distance)
 Status Producer::EmitMemoryRecord(RecordType t, const char* ptr, size_t n)
 {
     Status s;
-    assert(n <= 0xffff);
+    assert(n <= 0xffffff);
     assert(block_offset_ + kHeaderSize + n <= kBlockSize);
 
     char buf[kHeaderSize];
 
     buf[0] = static_cast<char>(n & 0xff);
-    buf[1] = static_cast<char>(n >> 8);
-    buf[2] = static_cast<char>(t);
+    buf[1] = static_cast<char>((n & 0xff00) >> 8);
+    buf[2] = static_cast<char>(n >> 16);
+    buf[3] = static_cast<char>(t);
 
     MovePoint(buf, static_cast<uint64_t>(kHeaderSize));
     MovePoint(ptr, static_cast<uint64_t>(n));
@@ -60,14 +61,15 @@ Producer::Producer(WritableFile *queue, uint64_t offset) :
 Status Producer::EmitPhysicalRecord(RecordType t, const char *ptr, size_t n)
 {
     Status s;
-    assert(n <= 0xffff);
+    assert(n <= 0xffffff);
     assert(block_offset_ + kHeaderSize + n <= kBlockSize);
 
     char buf[kHeaderSize];
 
     buf[0] = static_cast<char>(n & 0xff);
-    buf[1] = static_cast<char>(n >> 8);
-    buf[2] = static_cast<char>(t);
+    buf[1] = static_cast<char>((n & 0xff00) >> 8);
+    buf[2] = static_cast<char>(n >> 16);
+    buf[3] = static_cast<char>(t);
 
     s = queue_->Append(Slice(buf, kHeaderSize));
     if (s.ok()) {
