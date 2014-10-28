@@ -20,7 +20,7 @@ class FileHandler : public mario::Consumer::Handler
         FileHandler() {};
         virtual bool processMsg(const std::string &item) {
             log_info("consume data %s", item.data());
-            return true;
+            return false;
         }
 };
 
@@ -34,10 +34,11 @@ int main()
      * @param 1 is the thread number
      * @param fh is the handler that you implement. It tell the mario how
      * to consume the data
+     * @param 2 is the retry times. The default value is 10 if you don't set it.
      *
      * @return 
      */
-    mario::Mario *m = new mario::Mario(1, fh);
+    mario::Mario *m = new mario::Mario(1, fh, 2);
 
     std::string item = "Put data in mario";
     s = m->Put(item);

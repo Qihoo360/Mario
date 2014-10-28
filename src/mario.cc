@@ -18,7 +18,7 @@ struct Mario::Writer {
 };
 
 
-Mario::Mario(uint32_t consumer_num, Consumer::Handler *h)
+Mario::Mario(uint32_t consumer_num, Consumer::Handler *h, uint32_t retry)
     : consumer_num_(consumer_num),
     item_num_(0),
     env_(Env::Default()),
@@ -29,13 +29,13 @@ Mario::Mario(uint32_t consumer_num, Consumer::Handler *h)
     info_log_(NULL),
     bg_cv_(&mutex_),
     file_num_(0),
+    retry_(retry),
     pool_(NULL),
     exit_all_consume_(false),
     mario_path_("./log")
 {
 
     env_->set_thread_num(consumer_num_);
-    // env_->NewLogger("./mario.log", &info_log_);
 
 #if defined(MARIO_MEMORY)
     pool_ = (char *)malloc(sizeof(char) * kPoolSize);
@@ -186,7 +186,13 @@ void Mario::BackgroundCall()
         item_num_--;
 #endif
         mutex_.Unlock();
-        consumer_->h()->processMsg(scratch);
+        int retry = retry_ - 1;
+        while (!consumer_->h()->processMsg(scratch) && retry--) {
+        }
+        if (retry <= 0) {
+            log_warn("message retry %d time still error %s", retry_, scratch.c_str());
+        }
+
         }
     }
     return ;
