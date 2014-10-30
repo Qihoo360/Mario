@@ -221,6 +221,29 @@ Status Mario::Put(const std::string &item)
     return s;
 }
 
+Status Mario::Put(const char* item, int len)
+{
+    Status s;
+
+    {
+    MutexLock l(&mutex_);
+    s = producer_->Produce(Slice(item, len));
+    if (s.ok()) {
+#if defined(MARIO_MMAP)
+        version_->plus_item_num();
+        version_->StableSave();
+#endif
+
+#if defined(MARIO_MEMORY)
+        item_num_++;
+#endif
+    }
+
+    }
+    bg_cv_.Signal();
+    return s;
+}
+
 Status Mario::Get()
 {
     Status s;

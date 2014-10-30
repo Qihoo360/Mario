@@ -20,6 +20,7 @@ public:
     Mario(uint32_t consumer_num, Consumer::Handler *h, uint32_t retry = 10);
     ~Mario();
     Status Put(const std::string &item);
+    Status Put(const char* item, int len);
     Status Get();
 
     Env *env() { return env_; }
