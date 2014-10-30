@@ -38,7 +38,7 @@ static Status IOError(const std::string& context, int err_number) {
     return Status::IOError(context, strerror(err_number));
 }
 
-static size_t kMmapBoundSize = 6553600;
+static size_t kMmapBoundSize = 256;
 
 class PosixSequentialFile: public SequentialFile
 {
@@ -63,6 +63,7 @@ public:
 
         if (r < n) {
             if (feof(file_)) {
+                s = Status::EndFile(filename_, "end file");
                 // We leave status as ok if we hit the end of the file
             } else {
                 // A partial read with an error: return a non-ok status
@@ -301,8 +302,7 @@ public:
             assert(dst_ <= limit_);
             size_t avail = limit_ - dst_;
             if (avail == 0) {
-                if (!UnmapCurrentRegion() ||
-                        !MapNewRegion()) {
+                if (!UnmapCurrentRegion() || !MapNewRegion()) {
                     return IOError(filename_, errno);
                 }
             }
@@ -366,6 +366,10 @@ public:
         }
 
         return s;
+    }
+
+    virtual uint64_t Filesize() {
+        return file_offset_ + (dst_ - base_);
     }
 };
 
@@ -461,11 +465,9 @@ public:
 
     virtual void WaitForJoin() {
         std::vector<pthread_t>::iterator iter = threads_to_join_.begin();
-        // log_info("threads_to_join_ size() %d %d\n", threads_to_join_.size(), *iter);
         void* pret;
         int err;
         for (iter = threads_to_join_.begin(); iter != threads_to_join_.end(); iter++) {
-            // log_info("threads_to_join_ size() %d %d\n", threads_to_join_.size(), *iter);
             err = pthread_join(*iter, &pret);
             if (err != 0) {
                 log_err("can't join thread %s", strerror(err));

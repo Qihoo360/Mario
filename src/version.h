@@ -30,9 +30,13 @@ public:
     void plus_item_num() { item_num_++; }
     void minus_item_num() { item_num_--; }
 
+    std::string filename() { return filename_; }
+    void set_filename(std::string filename) { filename_ = filename; }
+
 private:
     uint64_t offset_;
     uint32_t item_num_;
+    std::string filename_;
     RWFile *save_;
     // port::Mutex mutex_;
 

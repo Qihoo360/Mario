@@ -4,6 +4,7 @@
 #include "version.h"
 #include "mutexlock.h"
 #include "port.h"
+#include "filename.h"
 #include <iostream>
 #include <string>
 
@@ -28,7 +29,7 @@ Mario::Mario(uint32_t consumer_num, Consumer::Handler *h, uint32_t retry)
     version_(NULL),
     info_log_(NULL),
     bg_cv_(&mutex_),
-    file_num_(0),
+    filenum_(0),
     retry_(retry),
     pool_(NULL),
     exit_all_consume_(false),
@@ -56,6 +57,8 @@ Mario::Mario(uint32_t consumer_num, Consumer::Handler *h, uint32_t retry)
     if (!env_->FileExists(filename_)) {
         log_info("Not exist file ");
         env_->NewWritableFile(filename_, &writefile_);
+        uint64_t filesize;
+        s = env_->GetFileSize(filename_, &filesize);
         env_->NewSequentialFile(filename_, &readfile_);
         env_->NewRWFile(manifest, &versionfile_);
         if (versionfile_ == NULL) {
@@ -64,29 +67,28 @@ Mario::Mario(uint32_t consumer_num, Consumer::Handler *h, uint32_t retry)
         version_ = new Version(versionfile_);
         version_->set_item_num(0);
         version_->set_offset(0);
+        version_->set_filename(filename_);
         version_->StableSave();
-        log_info("offset %llu itemnum %d", version_->offset(), version_->item_num());
-
     } else {
         log_info("exist file ");
+        uint64_t filesize;
+        s = env_->GetFileSize(filename_, &filesize);
         env_->AppendWritableFile(filename_, &writefile_);
         env_->AppendSequentialFile(filename_, &readfile_);
         s = env_->NewRWFile(manifest, &versionfile_);
         if (s.ok()) {
             version_ = new Version(versionfile_);
             version_->InitSelf();
-            log_info("offset %lld itemnum %d", version_->offset(), version_->item_num());
         } else {
-            log_info("new REFile error");
+            log_warn("new REFile error");
         }
     }
 
     uint64_t filesize;
     env_->GetFileSize(filename_, &filesize);
-    log_info("file size %d", filesize);
 
     producer_ = new Producer(writefile_, filesize);
-    consumer_ = new Consumer(readfile_, version_->offset(), h, version_);
+    consumer_ = new Consumer(readfile_, version_->offset(), h, version_, filenum_);
     env_->StartThread(&Mario::SplitLogWork, this);
 
 #endif
@@ -130,18 +132,19 @@ void Mario::SplitLogWork(void *m)
 
 void Mario::SplitLogCall()
 {
-    log_info("the mario split call");
+    Status s;
     while (1) {
-        uint64_t filesize;
-        env_->GetFileSize(filename_, &filesize);
+        uint64_t filesize = writefile_->Filesize();
+        log_info("filesize %llu kMmapSize %llu", filesize, kMmapSize);
         if (filesize > kMmapSize) {
             {
+
             MutexLock l(&mutex_);
-            for (int i = file_num_ - 1; i >= 0; i--) {
-                env_->RenameFile(filename_ + char(i + '0'), filename_ + char(i + 1 + '0'));
-            }
-            env_->RenameFile(filename_, filename_ + char(0 + '0'));
-            env_->NewWritableFile(filename_, &writefile_);
+            delete producer_;
+            delete writefile_;
+            env_->NewWritableFile(NewFileName(filename_, filenum_), &writefile_);
+            producer_ = new Producer(writefile_, filesize);
+            filenum_++;
 
             }
         }
@@ -157,6 +160,7 @@ void Mario::BGWork(void *m)
 void Mario::BackgroundCall()
 {
     std::string scratch("");
+    Status s;
     while (1) {
         {
         mutex_.Lock();
@@ -176,8 +180,20 @@ void Mario::BackgroundCall()
             bg_cv_.Wait();
         }
         scratch = "";
-        consumer_->Consume(scratch);
+        s = consumer_->Consume(scratch);
 #if defined(MARIO_MMAP)
+        std::string nf = NewFileName(filename_, consumer_->filenum() + 1);
+        if (s.IsEndFile() && env_->FileExists(nf)) {
+            delete readfile_;
+            Consumer::Handler *ho = consumer_->h();
+            uint32_t tmp = consumer_->filenum() + 1;
+            delete consumer_;
+            // version_->set_item_num(0);
+            version_->set_offset(0);
+            version_->set_filename(nf);
+            version_->StableSave();
+            consumer_ = new Consumer(readfile_, 0, ho, version_, tmp);
+        }
         version_->minus_item_num();
         version_->StableSave();
 #endif
@@ -186,11 +202,16 @@ void Mario::BackgroundCall()
         item_num_--;
 #endif
         mutex_.Unlock();
-        int retry = retry_ - 1;
-        while (!consumer_->h()->processMsg(scratch) && retry--) {
-        }
-        if (retry <= 0) {
-            log_warn("message retry %d time still error %s", retry_, scratch.c_str());
+        if (retry_ == -1) {
+            while (!consumer_->h()->processMsg(scratch)) {
+            }
+        } else {
+            int retry = retry_ - 1;
+            while (!consumer_->h()->processMsg(scratch) && retry--) {
+            }
+            if (retry <= 0) {
+                log_warn("message retry %d time still error %s", retry_, scratch.c_str());
+            }
         }
 
         }

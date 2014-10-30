@@ -53,8 +53,8 @@ Producer::Producer(WritableFile *queue, uint64_t offset) :
     queue_(queue),
     block_offset_(offset % kBlockSize)
 {
-    log_info("offset %d kBlockSize %d block_offset_ %d", offset, kBlockSize,
-            block_offset_);
+    // log_info("offset %d kBlockSize %d block_offset_ %d", offset, kBlockSize,
+    //         block_offset_);
     assert(queue_ != NULL);
 }
 
@@ -101,10 +101,10 @@ Status Producer::Produce(const Slice &item)
         if (static_cast<size_t>(leftover) < kHeaderSize) {
             if (leftover > 0) {
 #if defined(MARIO_MEMORY)
-                MovePoint("\x00\x00\x00\x00\x00\x00", leftover);
+                MovePoint("\x00\x00\x00\x00", leftover);
 #endif
 #if defined(MARIO_MMAP)
-                queue_->Append(Slice("\x00\x00\x00\x00\x00\x00", leftover));
+                queue_->Append(Slice("\x00\x00\x00\x00", leftover));
 #endif
             }
             block_offset_ = 0;

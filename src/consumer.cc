@@ -73,7 +73,7 @@ unsigned int Consumer::ReadMemoryRecord(Slice *result)
 
 #if defined(MARIO_MMAP)
 Consumer::Consumer(SequentialFile* const queue, uint64_t initial_offset,
-        Handler *h, Version* version)
+        Handler *h, Version* version, uint32_t filenum)
     : h_(h),
     initial_offset_(0),
     last_record_offset_(initial_offset % kBlockSize),
@@ -82,7 +82,8 @@ Consumer::Consumer(SequentialFile* const queue, uint64_t initial_offset,
     backing_store_(new char[kBlockSize]),
     buffer_(),
     eof_(false),
-    version_(version)
+    version_(version),
+    filenum_(filenum)
 {
     queue_->Skip(initial_offset);
 }
@@ -103,7 +104,6 @@ unsigned int Consumer::ReadPhysicalRecord(Slice *result)
     }
     buffer_.clear();
     s = queue_->Read(kHeaderSize, &buffer_, backing_store_);
-    // log_info("buffer_ %s", buffer_.data());
     if (!s.ok()) {
         return kBadRecord;
     }
@@ -119,7 +119,6 @@ unsigned int Consumer::ReadPhysicalRecord(Slice *result)
     }
     buffer_.clear();
     s = queue_->Read(length, &buffer_, backing_store_);
-    // log_info("buffer_ %s", buffer_.data());
     *result = Slice(buffer_.data(), buffer_.size());
     last_record_offset_ += kHeaderSize + length;
     if (s.ok()) {
