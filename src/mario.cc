@@ -85,7 +85,7 @@ Mario::Mario(uint32_t consumer_num, Consumer::Handler *h, int32_t retry)
             version_->InitSelf();
             pronum_ = version_->pronum();
             connum_ = version_->connum();
-            log_info("Current offset %" PRIu64 "itemnum %u pronum %u connum %u", version_->offset(), version_->item_num(), version_->pronum(), version_->connum());
+            log_info("Current offset %" PRIu64 " itemnum %u pronum %u connum %u", version_->offset(), version_->item_num(), version_->pronum(), version_->connum());
         } else {
             log_warn("new REFile error");
         }
@@ -149,6 +149,7 @@ void Mario::SplitLogWork(void *m)
 void Mario::SplitLogCall()
 {
     Status s;
+    std::string profile;
     while (1) {
         uint64_t filesize = writefile_->Filesize();
         // log_info("filesize %llu kMmapSize %llu", filesize, kMmapSize);
@@ -159,9 +160,10 @@ void Mario::SplitLogCall()
             delete producer_;
             delete writefile_;
             pronum_++;
+            profile = NewFileName(filename_, pronum_);
+            env_->NewWritableFile(profile, &writefile_);
             version_->set_pronum(pronum_);
             version_->StableSave();
-            env_->NewWritableFile(NewFileName(filename_, pronum_), &writefile_);
             producer_ = new Producer(writefile_, filesize);
 
             }
@@ -202,16 +204,29 @@ void Mario::BackgroundCall()
         scratch = "";
         s = consumer_->Consume(scratch);
 #if defined(MARIO_MMAP)
-        std::string profile = NewFileName(filename_, consumer_->filenum() + 1);
-        if (s.IsEndFile() && env_->FileExists(profile)) {
-            delete readfile_;
-            env_->AppendSequentialFile(profile, &readfile_);
-            Consumer::Handler *ho = consumer_->h();
-            uint32_t tmp = consumer_->filenum() + 1;
-            delete consumer_;
-            version_->set_offset(0);
-            version_->set_connum(tmp);
-            consumer_ = new Consumer(readfile_, 0, ho, version_, tmp);
+        log_info("consumer_ consume %s", s.ToString().c_str());
+        log_info("connum_ %d", connum_);
+        while (!s.ok()) {
+            std::string profile = NewFileName(filename_, connum_ + 1);
+            log_info("profile %s connum_ %d", profile.c_str(), connum_);
+            log_info("isendfile %d fileexist %d ", s.IsEndFile(), env_->FileExists(profile));
+            if (s.IsEndFile() && env_->FileExists(profile)) {
+                log_info("Rotate file ");
+                delete readfile_;
+                env_->AppendSequentialFile(profile, &readfile_);
+                Consumer::Handler *ho = consumer_->h();
+                connum_++;
+                delete consumer_;
+                version_->set_offset(0);
+                version_->set_connum(connum_);
+                version_->StableSave();
+                consumer_ = new Consumer(readfile_, 0, ho, version_, connum_);
+                s = consumer_->Consume(scratch);
+                log_info("consumer_ consume %s", s.ToString().c_str());
+                break;
+            } else {
+                sleep(1);
+            }
         }
         version_->minus_item_num();
         version_->StableSave();

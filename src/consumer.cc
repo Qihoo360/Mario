@@ -143,8 +143,6 @@ Status Consumer::Consume(std::string &scratch)
         return Status::IOError("last_record_offset exceed");
     }
 
-    scratch = "";
-
     Slice fragment;
     while (true) {
 #if defined(MARIO_MEMORY)

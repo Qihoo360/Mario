@@ -24,7 +24,7 @@ static const size_t kHeaderSize = 1 + 3;
 static const uint64_t kPoolSize = 1024 * 1024 * 1024;
 
 // The size of write2file when we need to rotate
-static const uint64_t kMmapSize = 1024 * 1024 * 100;
+static const uint64_t kMmapSize = 1024;
 
 static std::string kWrite2file = "/write2file";
 

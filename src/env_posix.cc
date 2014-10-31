@@ -28,6 +28,7 @@
 #include "posix_logger.h"
 
 #include "xdebug.h"
+#include "mario_item.h"
 
 
 namespace mario {
@@ -38,7 +39,7 @@ static Status IOError(const std::string& context, int err_number) {
     return Status::IOError(context, strerror(err_number));
 }
 
-static size_t kMmapBoundSize = 4194304;
+static size_t kMmapBoundSize = 256;
 
 class PosixSequentialFile: public SequentialFile
 {
