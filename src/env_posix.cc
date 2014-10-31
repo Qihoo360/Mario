@@ -38,7 +38,7 @@ static Status IOError(const std::string& context, int err_number) {
     return Status::IOError(context, strerror(err_number));
 }
 
-static size_t kMmapBoundSize = 6553600;
+static size_t kMmapBoundSize = 4194304;
 
 class PosixSequentialFile: public SequentialFile
 {
@@ -63,6 +63,7 @@ public:
 
         if (r < n) {
             if (feof(file_)) {
+                s = Status::EndFile(filename_, "end file");
                 // We leave status as ok if we hit the end of the file
             } else {
                 // A partial read with an error: return a non-ok status
@@ -253,13 +254,13 @@ private:
     bool MapNewRegion() {
         assert(base_ == NULL);
         if (ftruncate(fd_, file_offset_ + map_size_) < 0) {
-            log_err("ftruncate error");
+            log_warn("ftruncate error");
             return false;
         }
         void* ptr = mmap(NULL, map_size_, PROT_READ | PROT_WRITE, MAP_SHARED,
                 fd_, file_offset_);
         if (ptr == MAP_FAILED) {
-            log_err("mmap failed");
+            log_warn("mmap failed");
             return false;
         }
         base_ = reinterpret_cast<char*>(ptr);
@@ -301,8 +302,7 @@ public:
             assert(dst_ <= limit_);
             size_t avail = limit_ - dst_;
             if (avail == 0) {
-                if (!UnmapCurrentRegion() ||
-                        !MapNewRegion()) {
+                if (!UnmapCurrentRegion() || !MapNewRegion()) {
                     return IOError(filename_, errno);
                 }
             }
@@ -366,6 +366,10 @@ public:
         }
 
         return s;
+    }
+
+    virtual uint64_t Filesize() {
+        return file_offset_ + (dst_ - base_);
     }
 };
 
@@ -461,14 +465,12 @@ public:
 
     virtual void WaitForJoin() {
         std::vector<pthread_t>::iterator iter = threads_to_join_.begin();
-        // log_info("threads_to_join_ size() %d %d\n", threads_to_join_.size(), *iter);
         void* pret;
         int err;
         for (iter = threads_to_join_.begin(); iter != threads_to_join_.end(); iter++) {
-            // log_info("threads_to_join_ size() %d %d\n", threads_to_join_.size(), *iter);
             err = pthread_join(*iter, &pret);
             if (err != 0) {
-                log_err("can't join thread %s", strerror(err));
+                log_warn("can't join thread %s", strerror(err));
             }
         }
         threads_to_join_.clear();

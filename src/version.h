@@ -30,9 +30,18 @@ public:
     void plus_item_num() { item_num_++; }
     void minus_item_num() { item_num_--; }
 
+    uint32_t pronum() { return pronum_; }
+    void set_pronum(uint32_t pronum) { pronum_ = pronum; }
+
+    uint32_t connum() { return connum_; }
+    void set_connum(uint32_t connum) { connum_ = connum; }
+
 private:
     uint64_t offset_;
     uint32_t item_num_;
+    uint32_t pronum_;
+    uint32_t connum_;
+
     RWFile *save_;
     // port::Mutex mutex_;
 

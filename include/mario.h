@@ -17,7 +17,7 @@ class Version;
 class Mario
 {
 public:
-    Mario(uint32_t consumer_num, Consumer::Handler *h, uint32_t retry = 10);
+    Mario(uint32_t consumer_num, Consumer::Handler *h, int32_t retry = 10);
     ~Mario();
     Status Put(const std::string &item);
     Status Put(const char* item, int len);
@@ -44,8 +44,9 @@ private:
     Logger *info_log_;
     port::Mutex mutex_;
     port::CondVar bg_cv_;
-    uint32_t file_num_;
-    uint32_t retry_;
+    uint32_t pronum_;
+    uint32_t connum_;
+    int32_t retry_;
 
     std::string filename_;
 

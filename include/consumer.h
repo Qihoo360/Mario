@@ -24,8 +24,9 @@ public:
 #endif
 
 #if defined(MARIO_MMAP)
-    Consumer(SequentialFile *queue, uint64_t initial_offset, Handler *h, Version *version);
+    Consumer(SequentialFile *queue, uint64_t initial_offset, Handler *h, Version *version, uint32_t filenum);
     uint64_t last_record_offset () const { return last_record_offset_; }
+    uint32_t filenum() { return filenum_; }
 #endif
 
     ~Consumer();
@@ -55,6 +56,7 @@ private:
     Slice buffer_;
     bool eof_;
     Version* version_;
+    uint32_t filenum_;
 
     unsigned int ReadPhysicalRecord(Slice *fragment);
 #endif

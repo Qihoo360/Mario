@@ -1,6 +1,6 @@
 CXX = g++
 CXXFLAGS = -Wall -W -DDEBUG -g -O0 -D__XDEBUG__ -DMARIO_MMAP
-OBJECT = mario
+OBJECT = p
 SRC_DIR = ./
 
 LIB_PATH = -L../ \
@@ -9,7 +9,8 @@ LIB_PATH = -L../ \
 LIBS = -lmario \
 	   -lpthread
 
-INCLUDE_PATH = -I../output/include/
+INCLUDE_PATH = -I../include/ \
+			   -I../src/
 
 LIBRARY = libmario.a
 .PHONY: all clean version
@@ -27,6 +28,7 @@ version: version.o
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(INCLUDE_PATH) $(LIB_PATH) $(LIBS)
 
 $(OBJECT): $(OBJS)
+	@echo $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(INCLUDE_PATH) $(LIB_PATH) $(LIBS)
 
 $(OBJS): %.o : %.cc
