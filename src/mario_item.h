@@ -2,6 +2,7 @@
 #define __MARIO_ITEM_H__
 
 namespace mario {
+
 enum RecordType {
     kZeroType = 0,
     kFullType = 1,
@@ -23,7 +24,11 @@ static const size_t kHeaderSize = 1 + 3;
 static const uint64_t kPoolSize = 1024 * 1024 * 1024;
 
 // The size of write2file when we need to rotate
-static const uint64_t kMmapSize = 4096;
+static const uint64_t kMmapSize = 1024 * 1024 * 100;
+
+static std::string kWrite2file = "/write2file";
+
+static std::string kManifest = "/manifest";
 
 }
 

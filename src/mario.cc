@@ -5,8 +5,12 @@
 #include "mutexlock.h"
 #include "port.h"
 #include "filename.h"
+
 #include <iostream>
 #include <string>
+#include <stdint.h>
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
 
 namespace mario {
 
@@ -19,7 +23,7 @@ struct Mario::Writer {
 };
 
 
-Mario::Mario(uint32_t consumer_num, Consumer::Handler *h, uint32_t retry)
+Mario::Mario(uint32_t consumer_num, Consumer::Handler *h, int32_t retry)
     : consumer_num_(consumer_num),
     item_num_(0),
     env_(Env::Default()),
@@ -29,7 +33,8 @@ Mario::Mario(uint32_t consumer_num, Consumer::Handler *h, uint32_t retry)
     version_(NULL),
     info_log_(NULL),
     bg_cv_(&mutex_),
-    filenum_(0),
+    pronum_(0),
+    connum_(0),
     retry_(retry),
     pool_(NULL),
     exit_all_consume_(false),
@@ -41,7 +46,7 @@ Mario::Mario(uint32_t consumer_num, Consumer::Handler *h, uint32_t retry)
 #if defined(MARIO_MEMORY)
     pool_ = (char *)malloc(sizeof(char) * kPoolSize);
     if (pool_ == NULL) {
-        log_err("malloc error");
+        log_warn("malloc error");
         exit(-1);
     }
     producer_ = new Producer(pool_, kPoolSize);
@@ -50,45 +55,52 @@ Mario::Mario(uint32_t consumer_num, Consumer::Handler *h, uint32_t retry)
 
 #if defined(MARIO_MMAP)
 
-    filename_ = mario_path_ + "/write2file";
-    const std::string manifest = mario_path_ + "/manifest";
+    filename_ = mario_path_ + kWrite2file;
+    const std::string manifest = mario_path_ + kManifest;
+    std::string profile;
+    std::string confile;
     env_->CreateDir(mario_path_);
     Status s;
-    if (!env_->FileExists(filename_)) {
-        log_info("Not exist file ");
-        env_->NewWritableFile(filename_, &writefile_);
-        uint64_t filesize;
-        s = env_->GetFileSize(filename_, &filesize);
-        env_->NewSequentialFile(filename_, &readfile_);
+    if (!env_->FileExists(manifest)) {
+        log_info("Manifest file not exist");
+        profile = NewFileName(filename_, pronum_);
+        confile = NewFileName(filename_, connum_);
+        env_->NewWritableFile(profile, &writefile_);
+        env_->NewSequentialFile(confile, &readfile_);
         env_->NewRWFile(manifest, &versionfile_);
         if (versionfile_ == NULL) {
-            log_err("versionfile_ new error");
+            log_warn("new versionfile error");
         }
         version_ = new Version(versionfile_);
         version_->set_item_num(0);
         version_->set_offset(0);
-        version_->set_filename(filename_);
+        version_->set_pronum(0);
+        version_->set_connum(0);
         version_->StableSave();
     } else {
-        log_info("exist file ");
-        uint64_t filesize;
-        s = env_->GetFileSize(filename_, &filesize);
-        env_->AppendWritableFile(filename_, &writefile_);
-        env_->AppendSequentialFile(filename_, &readfile_);
+        log_info("Find the exist file ");
         s = env_->NewRWFile(manifest, &versionfile_);
         if (s.ok()) {
             version_ = new Version(versionfile_);
             version_->InitSelf();
+            pronum_ = version_->pronum();
+            connum_ = version_->connum();
+            log_info("Current offset %" PRIu64 "itemnum %u pronum %u connum %u", version_->offset(), version_->item_num(), version_->pronum(), version_->connum());
         } else {
             log_warn("new REFile error");
         }
+        profile = NewFileName(filename_, pronum_);
+        confile = NewFileName(filename_, connum_);
+        env_->AppendWritableFile(profile, &writefile_);
+        env_->AppendSequentialFile(confile, &readfile_);
     }
 
     uint64_t filesize;
-    env_->GetFileSize(filename_, &filesize);
+    env_->GetFileSize(profile, &filesize);
 
     producer_ = new Producer(writefile_, filesize);
-    consumer_ = new Consumer(readfile_, version_->offset(), h, version_, filenum_);
+    // log_info("offset %llu", version_->offset());
+    consumer_ = new Consumer(readfile_, version_->offset(), h, version_, connum_);
     env_->StartThread(&Mario::SplitLogWork, this);
 
 #endif
@@ -113,6 +125,7 @@ Mario::~Mario()
     // delete info_log_;
 
 #if defined(MARIO_MMAP)
+    // log_info("offset %llu itemnum %u ", version_->offset(), version_->item_num());
     delete version_;
     delete versionfile_;
 #endif
@@ -125,6 +138,9 @@ Mario::~Mario()
     // delete env_;
 }
 
+
+#if defined(MARIO_MMAP)
+
 void Mario::SplitLogWork(void *m)
 {
     reinterpret_cast<Mario*>(m)->SplitLogCall();
@@ -135,22 +151,26 @@ void Mario::SplitLogCall()
     Status s;
     while (1) {
         uint64_t filesize = writefile_->Filesize();
-        log_info("filesize %llu kMmapSize %llu", filesize, kMmapSize);
+        // log_info("filesize %llu kMmapSize %llu", filesize, kMmapSize);
         if (filesize > kMmapSize) {
             {
 
             MutexLock l(&mutex_);
             delete producer_;
             delete writefile_;
-            env_->NewWritableFile(NewFileName(filename_, filenum_), &writefile_);
+            pronum_++;
+            version_->set_pronum(pronum_);
+            version_->StableSave();
+            env_->NewWritableFile(NewFileName(filename_, pronum_), &writefile_);
             producer_ = new Producer(writefile_, filesize);
-            filenum_++;
 
             }
         }
         sleep(1);
     }
 }
+
+#endif
 
 void Mario::BGWork(void *m)
 {
@@ -182,16 +202,15 @@ void Mario::BackgroundCall()
         scratch = "";
         s = consumer_->Consume(scratch);
 #if defined(MARIO_MMAP)
-        std::string nf = NewFileName(filename_, consumer_->filenum() + 1);
-        if (s.IsEndFile() && env_->FileExists(nf)) {
+        std::string profile = NewFileName(filename_, consumer_->filenum() + 1);
+        if (s.IsEndFile() && env_->FileExists(profile)) {
             delete readfile_;
+            env_->AppendSequentialFile(profile, &readfile_);
             Consumer::Handler *ho = consumer_->h();
             uint32_t tmp = consumer_->filenum() + 1;
             delete consumer_;
-            // version_->set_item_num(0);
             version_->set_offset(0);
-            version_->set_filename(nf);
-            version_->StableSave();
+            version_->set_connum(tmp);
             consumer_ = new Consumer(readfile_, 0, ho, version_, tmp);
         }
         version_->minus_item_num();

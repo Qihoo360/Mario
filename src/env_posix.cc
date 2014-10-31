@@ -38,7 +38,7 @@ static Status IOError(const std::string& context, int err_number) {
     return Status::IOError(context, strerror(err_number));
 }
 
-static size_t kMmapBoundSize = 256;
+static size_t kMmapBoundSize = 4194304;
 
 class PosixSequentialFile: public SequentialFile
 {
@@ -254,13 +254,13 @@ private:
     bool MapNewRegion() {
         assert(base_ == NULL);
         if (ftruncate(fd_, file_offset_ + map_size_) < 0) {
-            log_err("ftruncate error");
+            log_warn("ftruncate error");
             return false;
         }
         void* ptr = mmap(NULL, map_size_, PROT_READ | PROT_WRITE, MAP_SHARED,
                 fd_, file_offset_);
         if (ptr == MAP_FAILED) {
-            log_err("mmap failed");
+            log_warn("mmap failed");
             return false;
         }
         base_ = reinterpret_cast<char*>(ptr);
@@ -470,7 +470,7 @@ public:
         for (iter = threads_to_join_.begin(); iter != threads_to_join_.end(); iter++) {
             err = pthread_join(*iter, &pret);
             if (err != 0) {
-                log_err("can't join thread %s", strerror(err));
+                log_warn("can't join thread %s", strerror(err));
             }
         }
         threads_to_join_.clear();

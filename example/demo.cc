@@ -24,7 +24,7 @@ class FileHandler : public mario::Consumer::Handler
             pthread_mutex_lock(&mutex);
             count++;
             pthread_mutex_unlock(&mutex);
-            // log_info("consume data %s", item.data());
+            log_info("consume data %s", item.data());
             return true;
         }
 };
@@ -45,8 +45,7 @@ int main()
      */
     mario::Mario *m = new mario::Mario(10, fh, 2);
 
-    std::string item = "aaa";
-    s = m->Put(item);
+    std::string item = "a";
     s = m->Put(item);
     int i = 10000;
     while (i--) {
