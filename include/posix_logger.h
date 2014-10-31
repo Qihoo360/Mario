@@ -38,7 +38,7 @@ class PosixLogger : public Logger {
                     bufsize = sizeof(buffer);
                     base = buffer;
                 } else {
-                    bufsize = 30000;
+                    bufsize = 4003520;
                     base = new char[bufsize];
                 }
                 char* p = base;
