@@ -75,7 +75,7 @@ unsigned int Consumer::ReadMemoryRecord(Slice *result)
 Consumer::Consumer(SequentialFile* const queue, uint64_t initial_offset,
         Handler *h, Version* version, uint32_t filenum)
     : h_(h),
-    initial_offset_(initial_offset),
+    initial_offset_(0),
     last_record_offset_(initial_offset % kBlockSize),
     end_of_buffer_offset_(kBlockSize),
     queue_(queue),
@@ -139,6 +139,7 @@ Consumer::Handler::~Handler() {};
 Status Consumer::Consume(std::string &scratch)
 {
     Status s;
+    log_info("last_record_offset %llu initial_offset %llu", last_record_offset_, initial_offset_);
     if (last_record_offset_ < initial_offset_) {
         return Status::IOError("last_record_offset exceed");
     }

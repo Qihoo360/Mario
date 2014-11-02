@@ -91,6 +91,7 @@ Mario::Mario(uint32_t consumer_num, Consumer::Handler *h, int32_t retry)
         }
         profile = NewFileName(filename_, pronum_);
         confile = NewFileName(filename_, connum_);
+        // log_info("profile %s confile %s", profile.c_str(), confile.c_str());
         env_->AppendWritableFile(profile, &writefile_);
         env_->AppendSequentialFile(confile, &readfile_);
     }
@@ -99,9 +100,9 @@ Mario::Mario(uint32_t consumer_num, Consumer::Handler *h, int32_t retry)
     env_->GetFileSize(profile, &filesize);
 
     producer_ = new Producer(writefile_, filesize);
-    // log_info("offset %llu", version_->offset());
+    log_info("offset %llu", version_->offset());
     consumer_ = new Consumer(readfile_, version_->offset(), h, version_, connum_);
-    env_->StartThread(&Mario::SplitLogWork, this);
+    // env_->StartThread(&Mario::SplitLogWork, this);
 
 #endif
     for (uint32_t i = 0; i < consumer_num_; i++) {
@@ -202,16 +203,16 @@ void Mario::BackgroundCall()
             bg_cv_.Wait();
         }
         scratch = "";
-        s = consumer_->Consume(scratch);
 #if defined(MARIO_MMAP)
-        log_info("consumer_ consume %s", s.ToString().c_str());
-        log_info("connum_ %d", connum_);
         while (!s.ok()) {
+            s = consumer_->Consume(scratch);
+            log_info("consumer_ consume %s", s.ToString().c_str());
+            log_info("connum_ %d", connum_);
             std::string profile = NewFileName(filename_, connum_ + 1);
             log_info("profile %s connum_ %d", profile.c_str(), connum_);
-            log_info("isendfile %d fileexist %d ", s.IsEndFile(), env_->FileExists(profile));
-            if (s.IsEndFile() && env_->FileExists(profile)) {
-                log_info("Rotate file ");
+            log_info("isendfile %d fileexist %d item_num %d", s.IsEndFile(), env_->FileExists(profile), version_->item_num());
+            if (s.IsEndFile() && version_->item_num() == 0 && env_->FileExists(profile)) {
+                // log_info("Rotate file ");
                 delete readfile_;
                 env_->AppendSequentialFile(profile, &readfile_);
                 Consumer::Handler *ho = consumer_->h();
@@ -233,6 +234,7 @@ void Mario::BackgroundCall()
 #endif
 
 #if defined(MARIO_MEMORY)
+        s = consumer_->Consume(scratch);
         item_num_--;
 #endif
         mutex_.Unlock();

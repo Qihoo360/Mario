@@ -43,11 +43,11 @@ int main()
      *
      * @return 
      */
-    mario::Mario *m = new mario::Mario(10, fh, 2);
+    mario::Mario *m = new mario::Mario(1, fh, 2);
 
     std::string item = "a";
     s = m->Put(item);
-    int i = 100;
+    int i = 10;
     while (i--) {
         s = m->Put(item);
         if (!s.ok()) {
