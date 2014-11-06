@@ -28,7 +28,7 @@ int main(int argc, char** argv)
     Version *v = new Version(versionfile);
     v->InitSelf();
     if (s.ok()) {
-        log_info("offset %llu itemnum %u pronum %u connum %u", v->offset(), v->item_num(), v->pronum(), v->connum());
+        log_info("pro_offset %llu con_offset %llu itemnum %u pronum %u connum %u", v->pro_offset(), v->con_offset(), v->item_num(), v->pronum(), v->connum());
     } else {
         log_warn("init error");
     }

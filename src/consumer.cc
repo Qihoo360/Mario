@@ -72,11 +72,10 @@ unsigned int Consumer::ReadMemoryRecord(Slice *result)
 #endif
 
 #if defined(MARIO_MMAP)
-Consumer::Consumer(SequentialFile* const queue, uint64_t initial_offset,
-        Handler *h, Version* version, uint32_t filenum)
+Consumer::Consumer(SequentialFile* const queue, Handler *h, Version* version,
+        uint32_t filenum)
     : h_(h),
     initial_offset_(0),
-    last_record_offset_(initial_offset % kBlockSize),
     end_of_buffer_offset_(kBlockSize),
     queue_(queue),
     backing_store_(new char[kBlockSize]),
@@ -86,7 +85,8 @@ Consumer::Consumer(SequentialFile* const queue, uint64_t initial_offset,
     filenum_(filenum)
 {
     // log_info("initial_offset %llu", initial_offset);
-    queue_->Skip(initial_offset);
+    last_record_offset_ = version_->con_offset() % kBlockSize;
+    queue_->Skip(version_->con_offset());
     // log_info("status %s", s.ToString().c_str());
 }
 
@@ -100,7 +100,7 @@ unsigned int Consumer::ReadPhysicalRecord(Slice *result)
     Status s;
     if (end_of_buffer_offset_ - last_record_offset_ <= kHeaderSize) {
         queue_->Skip(end_of_buffer_offset_ - last_record_offset_);
-        version_->rise_offset(end_of_buffer_offset_ - last_record_offset_);
+        version_->rise_con_offset(end_of_buffer_offset_ - last_record_offset_);
         version_->StableSave();
         last_record_offset_ = 0;
     }
@@ -126,7 +126,7 @@ unsigned int Consumer::ReadPhysicalRecord(Slice *result)
     *result = Slice(buffer_.data(), buffer_.size());
     last_record_offset_ += kHeaderSize + length;
     if (s.ok()) {
-        version_->rise_offset(kHeaderSize + length);
+        version_->rise_con_offset(kHeaderSize + length);
         version_->StableSave();
     }
     return type;

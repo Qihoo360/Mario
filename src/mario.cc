@@ -25,6 +25,7 @@ struct Mario::Writer {
 
 Mario::Mario(uint32_t consumer_num, Consumer::Handler *h, int32_t retry)
     : consumer_num_(consumer_num),
+    h_(h),
     item_num_(0),
     env_(Env::Default()),
     readfile_(NULL),
@@ -44,8 +45,7 @@ Mario::Mario(uint32_t consumer_num, Consumer::Handler *h, int32_t retry)
 #if defined(MARIO_MEMORY)
     pool_ = (char *)malloc(sizeof(char) * kPoolSize);
     if (pool_ == NULL) {
-        log_warn("malloc error");
-        exit(-1);
+        log_err("malloc error");
     }
     producer_ = new Producer(pool_, kPoolSize);
     consumer_ = new Consumer(0, h, pool_, kPoolSize);
@@ -70,10 +70,6 @@ Mario::Mario(uint32_t consumer_num, Consumer::Handler *h, int32_t retry)
             log_warn("new versionfile error");
         }
         version_ = new Version(versionfile_);
-        version_->set_item_num(0);
-        version_->set_offset(0);
-        version_->set_pronum(0);
-        version_->set_connum(0);
         version_->StableSave();
     } else {
         log_info("Find the exist file ");
@@ -83,22 +79,21 @@ Mario::Mario(uint32_t consumer_num, Consumer::Handler *h, int32_t retry)
             version_->InitSelf();
             pronum_ = version_->pronum();
             connum_ = version_->connum();
-            log_info("Current offset %" PRIu64 " itemnum %u pronum %u connum %u", version_->offset(), version_->item_num(), version_->pronum(), version_->connum());
+            version_->debug();
         } else {
             log_warn("new REFile error");
         }
         profile = NewFileName(filename_, pronum_);
         confile = NewFileName(filename_, connum_);
         log_info("profile %s confile %s", profile.c_str(), confile.c_str());
-        env_->AppendWritableFile(profile, &writefile_, version_->offset());
+        env_->AppendWritableFile(profile, &writefile_, version_->pro_offset());
         uint64_t filesize = writefile_->Filesize();
         log_info("filesize %" PRIu64 "", filesize);
         env_->AppendSequentialFile(confile, &readfile_);
     }
 
     producer_ = new Producer(writefile_, version_);
-    log_info("offset %" PRIu64 "", version_->offset());
-    consumer_ = new Consumer(readfile_, version_->offset(), h, version_, connum_);
+    consumer_ = new Consumer(readfile_, h_, version_, connum_);
     env_->StartThread(&Mario::SplitLogWork, this);
 
 #endif
@@ -122,7 +117,6 @@ Mario::~Mario()
     delete producer_;
 
 #if defined(MARIO_MMAP)
-    // log_info("offset %llu itemnum %u ", version_->offset(), version_->item_num());
     delete version_;
     delete versionfile_;
 #endif
@@ -149,7 +143,7 @@ void Mario::SplitLogCall()
     std::string profile;
     while (1) {
         uint64_t filesize = writefile_->Filesize();
-        log_info("filesize %llu kMmapSize %llu", filesize, kMmapSize);
+        // log_info("filesize %llu kMmapSize %llu", filesize, kMmapSize);
         if (filesize > kMmapSize) {
             {
 
@@ -159,8 +153,10 @@ void Mario::SplitLogCall()
             pronum_++;
             profile = NewFileName(filename_, pronum_);
             env_->NewWritableFile(profile, &writefile_);
+            version_->set_pro_offset(0);
             version_->set_pronum(pronum_);
             version_->StableSave();
+            version_->debug();
             producer_ = new Producer(writefile_, version_);
 
             }
@@ -202,29 +198,30 @@ void Mario::BackgroundCall()
 #if defined(MARIO_MMAP)
         s = consumer_->Consume(scratch);
         while (!s.ok()) {
-            s = consumer_->Consume(scratch);
-            log_info("consumer_ consume %s", s.ToString().c_str());
-            log_info("connum_ %d", connum_);
+            // log_info("consumer_ consume %s", s.ToString().c_str());
+            // log_info("connum_ %d", connum_);
             std::string confile = NewFileName(filename_, connum_ + 1);
-            log_info("confile %s connum_ %d", confile.c_str(), connum_);
-            log_info("isendfile %d fileexist %d item_num %d", s.IsEndFile(), env_->FileExists(confile), version_->item_num());
+            // log_info("confile %s connum_ %d", confile.c_str(), connum_);
+            // log_info("isendfile %d fileexist %d item_num %d", s.IsEndFile(), env_->FileExists(confile), version_->item_num());
             if (s.IsEndFile() && env_->FileExists(confile)) {
                 // log_info("Rotate file ");
                 delete readfile_;
                 env_->AppendSequentialFile(confile, &readfile_);
-                Consumer::Handler *ho = consumer_->h();
                 connum_++;
                 delete consumer_;
-                version_->set_offset(0);
+                version_->set_con_offset(0);
                 version_->set_connum(connum_);
                 version_->StableSave();
-                consumer_ = new Consumer(readfile_, 0, ho, version_, connum_);
+                consumer_ = new Consumer(readfile_, h_, version_, connum_);
                 s = consumer_->Consume(scratch);
-                log_info("consumer_ consume %s", s.ToString().c_str());
+                // log_info("consumer_ consume %s", s.ToString().c_str());
                 break;
             } else {
+                mutex_.Unlock();
                 sleep(1);
+                mutex_.Lock();
             }
+            s = consumer_->Consume(scratch);
         }
         version_->minus_item_num();
         version_->StableSave();
@@ -236,11 +233,11 @@ void Mario::BackgroundCall()
 #endif
         mutex_.Unlock();
         if (retry_ == -1) {
-            while (!consumer_->h()->processMsg(scratch)) {
+            while (h_->processMsg(scratch)) {
             }
         } else {
             int retry = retry_ - 1;
-            while (!consumer_->h()->processMsg(scratch) && retry--) {
+            while (!h_->processMsg(scratch) && retry--) {
             }
             if (retry <= 0) {
                 log_warn("message retry %d time still error %s", retry_, scratch.c_str());

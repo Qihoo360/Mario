@@ -551,6 +551,7 @@ public:
             WritableFile** result, uint64_t write_len) {
         Status s;
         const int fd = open(fname.c_str(), O_RDWR, 0644);
+        // log_info("AppendWriteableFile write_len %lld", write_len);
         if (fd < 0) {
             *result = NULL;
             s = IOError(fname, errno);

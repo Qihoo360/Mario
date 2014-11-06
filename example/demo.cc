@@ -46,8 +46,7 @@ int main()
     mario::Mario *m = new mario::Mario(1, fh, 2);
 
     std::string item = "a";
-    s = m->Put(item);
-    int i = 0;
+    int i = 2000000;
     while (i--) {
         s = m->Put(item);
         if (!s.ok()) {

@@ -27,6 +27,7 @@ public:
     WritableFile *writefile() { return writefile_; }
 
     Consumer *consumer() { return consumer_; }
+    Consumer::Handler *h() { return h_; }
 
 private:
 
@@ -34,6 +35,7 @@ private:
     Producer *producer_;
     Consumer *consumer_;
     uint32_t consumer_num_;
+    Consumer::Handler *h_;
     uint64_t item_num_;
     Env* env_;
     SequentialFile *readfile_;

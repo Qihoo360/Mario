@@ -83,7 +83,7 @@ Status Producer::EmitPhysicalRecord(RecordType t, const char *ptr, size_t n)
     }
     block_offset_ += kHeaderSize + n;
     // log_info("block_offset %d", (kHeaderSize + n));
-    version_->rise_offset((uint64_t)(kHeaderSize + n));
+    version_->rise_pro_offset((uint64_t)(kHeaderSize + n));
     version_->StableSave();
     return s;
 }
@@ -111,6 +111,8 @@ Status Producer::Produce(const Slice &item)
 #endif
 #if defined(MARIO_MMAP)
                 queue_->Append(Slice("\x00\x00\x00\x00\x00\x00\x00", leftover));
+                version_->rise_pro_offset(leftover);
+                version_->StableSave();
 #endif
             }
             block_offset_ = 0;
