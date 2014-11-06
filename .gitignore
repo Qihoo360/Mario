@@ -28,3 +28,6 @@
 *.app
 
 gdb.txt
+tool/p
+log/
+.gdbinit
