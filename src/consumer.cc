@@ -139,7 +139,7 @@ Consumer::Handler::~Handler() {};
 Status Consumer::Consume(std::string &scratch)
 {
     Status s;
-    log_info("last_record_offset %llu initial_offset %llu", last_record_offset_, initial_offset_);
+    // log_info("last_record_offset %llu initial_offset %llu", last_record_offset_, initial_offset_);
     if (last_record_offset_ < initial_offset_) {
         return Status::IOError("last_record_offset exceed");
     }

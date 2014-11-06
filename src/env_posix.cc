@@ -39,7 +39,7 @@ static Status IOError(const std::string& context, int err_number) {
     return Status::IOError(context, strerror(err_number));
 }
 
-static size_t kMmapBoundSize = 1024 * 1024 * 1024;
+static size_t kMmapBoundSize = 1024 * 1024 * 4;
 
 class PosixSequentialFile: public SequentialFile
 {
@@ -208,7 +208,7 @@ private:
     char* dst_;             // Where to write next  (in range [base_,limit_])
     char* last_sync_;       // Where have we synced up to
     uint64_t file_offset_;  // Offset of base_ in file
-    off_t write_len_;
+    uint64_t write_len_;    // The data that written in the file
 
 
     // Have we done an munmap of unsynced data?
@@ -258,7 +258,7 @@ private:
             log_warn("ftruncate error");
             return false;
         }
-        log_info("map_size %d fileoffset %llu", map_size_, file_offset_);
+        // log_info("map_size %d fileoffset %llu", map_size_, file_offset_);
         void* ptr = mmap(NULL, map_size_, PROT_READ | PROT_WRITE, MAP_SHARED,
                 fd_, file_offset_);
         if (ptr == MAP_FAILED) {
@@ -283,9 +283,14 @@ public:
         limit_(NULL),
         dst_(NULL),
         last_sync_(NULL),
-        file_offset_(TrimDown(write_len, kMmapBoundSize)),
-        write_len_(write_len % kMmapBoundSize),
+        file_offset_(0),
+        write_len_(write_len),
         pending_sync_(false) {
+            if (write_len_ != 0) {
+                while (map_size_ < write_len_) {
+                    map_size_ += (1024 * 1024);
+                }
+            }
             assert((page_size & (page_size - 1)) == 0);
         }
 
@@ -371,7 +376,7 @@ public:
     }
 
     virtual uint64_t Filesize() {
-        return file_offset_ + (dst_ - base_);
+        return write_len_ + file_offset_ + (dst_ - base_);
     }
 };
 
@@ -543,12 +548,9 @@ public:
     }
 
     virtual Status AppendWritableFile(const std::string& fname,
-            WritableFile** result) {
+            WritableFile** result, uint64_t write_len) {
         Status s;
         const int fd = open(fname.c_str(), O_RDWR, 0644);
-        uint64_t write_len;
-        GetFileSize(fname, &write_len);
-        log_info("write_len %llu", write_len);
         if (fd < 0) {
             *result = NULL;
             s = IOError(fname, errno);

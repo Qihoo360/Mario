@@ -49,12 +49,15 @@ Status Producer::EmitMemoryRecord(RecordType t, const char* ptr, size_t n)
 #endif
 
 #if defined(MARIO_MMAP)
-Producer::Producer(WritableFile *queue, uint64_t offset) :
+Producer::Producer(WritableFile *queue, Version *version) :
     queue_(queue),
-    block_offset_(offset % kBlockSize)
+    version_(version)
 {
     // log_info("offset %d kBlockSize %d block_offset_ %d", offset, kBlockSize,
     //         block_offset_);
+    uint64_t filesize = queue->Filesize();
+    // log_info("file size %lld", filesize);
+    block_offset_ = filesize % kBlockSize;
     assert(queue_ != NULL);
 }
 
@@ -79,6 +82,9 @@ Status Producer::EmitPhysicalRecord(RecordType t, const char *ptr, size_t n)
         }
     }
     block_offset_ += kHeaderSize + n;
+    // log_info("block_offset %d", (kHeaderSize + n));
+    version_->rise_offset((uint64_t)(kHeaderSize + n));
+    version_->StableSave();
     return s;
 }
 
@@ -101,10 +107,10 @@ Status Producer::Produce(const Slice &item)
         if (static_cast<size_t>(leftover) < kHeaderSize) {
             if (leftover > 0) {
 #if defined(MARIO_MEMORY)
-                MovePoint("\x00\x00\x00\x00", leftover);
+                MovePoint("\x00\x00\x00\x00\x00\x00\x00", leftover);
 #endif
 #if defined(MARIO_MMAP)
-                queue_->Append(Slice("\x00\x00\x00\x00", leftover));
+                queue_->Append(Slice("\x00\x00\x00\x00\x00\x00\x00", leftover));
 #endif
             }
             block_offset_ = 0;

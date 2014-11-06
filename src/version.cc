@@ -21,6 +21,9 @@ Status Version::StableSave()
 
     char *p = save_->GetData();
     memcpy(p, &offset_, sizeof(uint64_t));
+    uint64_t n;
+    memcpy((char *)&n, p, sizeof(uint64_t));
+    // log_info("num n %llu", n);
     p += 8;
     memcpy(p, &item_num_, sizeof(uint32_t));
     p += 4;

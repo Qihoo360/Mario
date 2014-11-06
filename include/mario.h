@@ -24,7 +24,6 @@ public:
     Status Get();
 
     Env *env() { return env_; }
-    Logger *info_log() { return info_log_; }
     WritableFile *writefile() { return writefile_; }
 
     Consumer *consumer() { return consumer_; }
@@ -41,7 +40,6 @@ private:
     WritableFile *writefile_;
     RWFile *versionfile_;
     Version* version_;
-    Logger *info_log_;
     port::Mutex mutex_;
     port::CondVar bg_cv_;
     uint32_t pronum_;

@@ -4,8 +4,11 @@
 #include "env.h"
 #include "mario_item.h"
 #include "status.h"
+#include "version.h"
 
 namespace mario {
+
+class Version;
 
 class Producer 
 {
@@ -15,7 +18,7 @@ public:
 #endif
 
 #if defined(MARIO_MMAP)
-    explicit Producer(WritableFile *queue, uint64_t offset);
+    explicit Producer(WritableFile *queue, Version *version);
 #endif
     ~Producer();
     Status Produce(const Slice &item);
@@ -32,6 +35,7 @@ private:
 #if defined(MARIO_MMAP)
     WritableFile *queue_;
     Status EmitPhysicalRecord(RecordType t, const char *ptr, size_t n);
+    Version *version_;
 #endif
     int block_offset_;
 

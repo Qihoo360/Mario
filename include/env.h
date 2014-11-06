@@ -73,7 +73,7 @@ class Env {
                 WritableFile** result) = 0;
 
         virtual Status AppendWritableFile(const std::string& fname,
-                WritableFile** result) = 0;
+                WritableFile** result, uint64_t write_len = 0) = 0;
 
         virtual Status NewRWFile(const std::string& fname,
                 RWFile** result) = 0;

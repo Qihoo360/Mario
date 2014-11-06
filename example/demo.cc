@@ -18,15 +18,15 @@ int count = 0;
  */
 class FileHandler : public mario::Consumer::Handler
 {
-    public:
-        FileHandler() {};
-        virtual bool processMsg(const std::string &item) {
-            pthread_mutex_lock(&mutex);
-            count++;
-            pthread_mutex_unlock(&mutex);
-            // log_info("consume data %s", item.data());
-            return true;
-        }
+public:
+    FileHandler() {};
+    virtual bool processMsg(const std::string &item) {
+        pthread_mutex_lock(&mutex);
+        count++;
+        pthread_mutex_unlock(&mutex);
+        // log_info("consume data %s", item.data());
+        return true;
+    }
 };
 
 int main()
@@ -47,7 +47,7 @@ int main()
 
     std::string item = "a";
     s = m->Put(item);
-    int i = 10;
+    int i = 0;
     while (i--) {
         s = m->Put(item);
         if (!s.ok()) {

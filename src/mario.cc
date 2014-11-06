@@ -5,6 +5,7 @@
 #include "mutexlock.h"
 #include "port.h"
 #include "filename.h"
+#include "signal.h"
 
 #include <iostream>
 #include <string>
@@ -22,7 +23,6 @@ struct Mario::Writer {
     explicit Writer(port::Mutex* mu) : cv(mu) { }
 };
 
-
 Mario::Mario(uint32_t consumer_num, Consumer::Handler *h, int32_t retry)
     : consumer_num_(consumer_num),
     item_num_(0),
@@ -31,7 +31,6 @@ Mario::Mario(uint32_t consumer_num, Consumer::Handler *h, int32_t retry)
     writefile_(NULL),
     versionfile_(NULL),
     version_(NULL),
-    info_log_(NULL),
     bg_cv_(&mutex_),
     pronum_(0),
     connum_(0),
@@ -40,7 +39,6 @@ Mario::Mario(uint32_t consumer_num, Consumer::Handler *h, int32_t retry)
     exit_all_consume_(false),
     mario_path_("./log")
 {
-
     env_->set_thread_num(consumer_num_);
 
 #if defined(MARIO_MEMORY)
@@ -91,18 +89,17 @@ Mario::Mario(uint32_t consumer_num, Consumer::Handler *h, int32_t retry)
         }
         profile = NewFileName(filename_, pronum_);
         confile = NewFileName(filename_, connum_);
-        // log_info("profile %s confile %s", profile.c_str(), confile.c_str());
-        env_->AppendWritableFile(profile, &writefile_);
+        log_info("profile %s confile %s", profile.c_str(), confile.c_str());
+        env_->AppendWritableFile(profile, &writefile_, version_->offset());
+        uint64_t filesize = writefile_->Filesize();
+        log_info("filesize %" PRIu64 "", filesize);
         env_->AppendSequentialFile(confile, &readfile_);
     }
 
-    uint64_t filesize;
-    env_->GetFileSize(profile, &filesize);
-
-    producer_ = new Producer(writefile_, filesize);
-    log_info("offset %llu", version_->offset());
+    producer_ = new Producer(writefile_, version_);
+    log_info("offset %" PRIu64 "", version_->offset());
     consumer_ = new Consumer(readfile_, version_->offset(), h, version_, connum_);
-    // env_->StartThread(&Mario::SplitLogWork, this);
+    env_->StartThread(&Mario::SplitLogWork, this);
 
 #endif
     for (uint32_t i = 0; i < consumer_num_; i++) {
@@ -123,7 +120,6 @@ Mario::~Mario()
 
     delete consumer_;
     delete producer_;
-    // delete info_log_;
 
 #if defined(MARIO_MMAP)
     // log_info("offset %llu itemnum %u ", version_->offset(), version_->item_num());
@@ -153,7 +149,7 @@ void Mario::SplitLogCall()
     std::string profile;
     while (1) {
         uint64_t filesize = writefile_->Filesize();
-        // log_info("filesize %llu kMmapSize %llu", filesize, kMmapSize);
+        log_info("filesize %llu kMmapSize %llu", filesize, kMmapSize);
         if (filesize > kMmapSize) {
             {
 
@@ -165,7 +161,7 @@ void Mario::SplitLogCall()
             env_->NewWritableFile(profile, &writefile_);
             version_->set_pronum(pronum_);
             version_->StableSave();
-            producer_ = new Producer(writefile_, filesize);
+            producer_ = new Producer(writefile_, version_);
 
             }
         }
@@ -204,17 +200,18 @@ void Mario::BackgroundCall()
         }
         scratch = "";
 #if defined(MARIO_MMAP)
+        s = consumer_->Consume(scratch);
         while (!s.ok()) {
             s = consumer_->Consume(scratch);
             log_info("consumer_ consume %s", s.ToString().c_str());
             log_info("connum_ %d", connum_);
-            std::string profile = NewFileName(filename_, connum_ + 1);
-            log_info("profile %s connum_ %d", profile.c_str(), connum_);
-            log_info("isendfile %d fileexist %d item_num %d", s.IsEndFile(), env_->FileExists(profile), version_->item_num());
-            if (s.IsEndFile() && version_->item_num() == 0 && env_->FileExists(profile)) {
+            std::string confile = NewFileName(filename_, connum_ + 1);
+            log_info("confile %s connum_ %d", confile.c_str(), connum_);
+            log_info("isendfile %d fileexist %d item_num %d", s.IsEndFile(), env_->FileExists(confile), version_->item_num());
+            if (s.IsEndFile() && env_->FileExists(confile)) {
                 // log_info("Rotate file ");
                 delete readfile_;
-                env_->AppendSequentialFile(profile, &readfile_);
+                env_->AppendSequentialFile(confile, &readfile_);
                 Consumer::Handler *ho = consumer_->h();
                 connum_++;
                 delete consumer_;
