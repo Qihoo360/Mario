@@ -26,7 +26,9 @@ class PosixLogger : public Logger {
             fclose(file_);
         }
         virtual void Logv(const char* format, va_list ap) {
-            const uint64_t thread_id = (*gettid_)();
+            /*
+             * const uint64_t thread_id = (*gettid_)();
+             */
 
             // We try twice: the first time with a fixed-size stack allocated buffer,
             // and the second time with a much larger dynamically allocated buffer.

@@ -1,5 +1,5 @@
 CXX = g++
-ENGINE=memory
+
 ifeq ($(ENGINE), memory)
 	CXXFLAGS = -Wall -W -DDEBUG -g -O0 -D__XDEBUG__ -fPIC -DMARIO_MEMORY
 else
