@@ -24,7 +24,7 @@ public:
         pthread_mutex_lock(&mutex);
         count++;
         pthread_mutex_unlock(&mutex);
-        // log_info("consume data %s", item.data());
+        log_info("consume data %s", item.data());
         return true;
     }
 };
@@ -43,19 +43,25 @@ int main()
      *
      * @return 
      */
-    mario::Mario *m = new mario::Mario(1, fh, 2);
+    mario::Mario *m = new mario::Mario(10, fh, 2);
 
+    std::string item2 = "heiheiadfasdf";
     std::string item = "a";
-    int i = 2000000;
+    std::string item1 = "abcde";
+    std::string item3 = "abcdeasdfwupeiq";
+    int i = 20000;
     while (i--) {
         s = m->Put(item);
+        s = m->Put(item1);
+        s = m->Put(item2);
+        s = m->Put(item3);
         if (!s.ok()) {
             log_err("Put error");
             exit(-1);
         }
     }
 
-    sleep(1);
+    sleep(10);
     log_info("count %d", count);
     delete m;
     delete fh;

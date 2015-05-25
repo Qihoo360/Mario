@@ -27,19 +27,36 @@ Consumer::~Consumer()
 
 }
 
-inline void Consumer::CheckEnd(const uint64_t distance)
+/*
+ * inline void Consumer::CheckEnd(const uint64_t distance)
+ * {
+ *     if (pool_len_ < distance) {
+ *         pool_len_ = kPoolSize;
+ *         pool_ = origin_;
+ *     }
+ * 
+ * }
+ */
+
+inline void Consumer::ConsumeData(const int64_t distance)
 {
+    // log_info("pool_len %ld distance %ld %ld", pool_len_, distance, pool_len_ - distance);
     if (pool_len_ < distance) {
-        pool_len_ = kPoolSize;
-        pool_ = origin_;
+        /*
+         * jump to the next block
+         */
+        pool_ = origin_ + ((((pool_ - origin_ + 1) / kPoolSize) + 1) * kBlockSize) % kPoolSize;
+        pool_len_ = kPoolSize - (pool_ - origin_);
+    } else {
+        pool_ += distance;
+        pool_len_ -= distance;
     }
-
-}
-
-inline void Consumer::ConsumeData(const int distance)
-{
-    pool_ += distance;
-    pool_len_ -= distance;
+    if (pool_len_ <= 0) {
+        // log_info("in the ifpool_len %ld distance %ld %ld", pool_len_, distance, pool_len_ - distance);
+        pool_ = origin_;
+        pool_len_ = kPoolSize;
+    }
+    // log_info("after pool %p pool_len %ld distance %ld", pool_, pool_len_, distance);
 }
 
 unsigned int Consumer::ReadMemoryRecord(Slice *result)
@@ -50,7 +67,6 @@ unsigned int Consumer::ReadMemoryRecord(Slice *result)
         last_record_offset_ = 0;
     }
 
-    CheckEnd(static_cast<uint64_t>(kHeaderSize));
     const char* header = pool_;
     const uint32_t a = static_cast<uint32_t>(header[0]) & 0xff;
     const uint32_t b = static_cast<uint32_t>(header[1]) & 0xff;
@@ -61,10 +77,9 @@ unsigned int Consumer::ReadMemoryRecord(Slice *result)
     if (type == kZeroType || length == 0) {
         return kOldRecord;
     }
-    ConsumeData(kHeaderSize);
-    CheckEnd(static_cast<uint64_t>(length));
-    *result = Slice(pool_, length);
-    ConsumeData(length);
+
+    *result = Slice(pool_ + kHeaderSize, length);
+    ConsumeData(static_cast<uint64_t>(kHeaderSize) + static_cast<uint64_t>(length));
     last_record_offset_ += kHeaderSize + length;
     return type;
 }

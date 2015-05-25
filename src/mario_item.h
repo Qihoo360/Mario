@@ -14,16 +14,26 @@ enum RecordType {
     kOldRecord = 7
 };
 
-// The block size that we read and write from write2file
-static const size_t kBlockSize = 64 * 1024;
+/*
+ * the block size that we read and write from write2file
+ * the default size is 64KB
+ */
+static const size_t kBlockSize = 64 * 1024 * 1024;
 
-// Header is Type(1 byte), length (2 bytes)
+/*
+ * Header is Type(1 byte), length (2 bytes)
+ */
 static const size_t kHeaderSize = 1 + 3;
 
-// The size of memory when we use memory mode
-static const uint64_t kPoolSize = 1024 * 1024 * 1024;
+/*
+ * the size of memory when we use memory mode
+ * the default memory size is 2GB
+ */
+static const int64_t kPoolSize = kBlockSize * 1024 * 1024 * 2 / 64;
 
-// The size of write2file when we need to rotate
+/*
+ * The size of write2file when we need to rotate
+ */
 static const uint64_t kMmapSize = 1024 * 1024 * 100;
 
 static std::string kWrite2file = "/write2file";

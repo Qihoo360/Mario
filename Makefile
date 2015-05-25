@@ -1,9 +1,15 @@
 CXX = g++
 
-ifeq ($(ENGINE), memory)
-	CXXFLAGS = -Wall -W -DDEBUG -g -O0 -D__XDEBUG__ -fPIC -DMARIO_MEMORY
+ifeq ($(__PERF), 1)
+	CXXFLAGS = -O0 -g -pg -pipe -fPIC -D__XDEBUG__ -W -Wwrite-strings -Wpointer-arith -Wreorder -Wswitch -Wsign-promo -Wredundant-decls -Wformat -Wall -Wconversion -D_GNU_SOURCE
 else
-	CXXFLAGS = -Wall -W -DDEBUG -g -O0 -D__XDEBUG__ -fPIC -DMARIO_MMAP
+	CPPFLAGS = -O2 -g -pipe -fPIC -W -Wwrite-strings -Wpointer-arith -Wreorder -Wswitch -Wsign-promo -Wredundant-decls -Wformat -Wall -Wconversion -D_GNU_SOURCE
+endif
+
+ifeq ($(ENGINE), memory)
+	CXXFLAGS += -DMARIO_MEMORY
+else
+	CXXFLAGS += -DMARIO_MMAP
 endif
 
 OBJECT = mario

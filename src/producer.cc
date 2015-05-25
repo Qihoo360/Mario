@@ -5,7 +5,7 @@
 namespace mario {
 
 #if defined(MARIO_MEMORY)
-Producer::Producer(char* pool, uint64_t pool_len) :
+Producer::Producer(char* pool, int64_t pool_len) :
     pool_(pool),
     origin_(pool),
     pool_len_(pool_len),
@@ -13,17 +13,26 @@ Producer::Producer(char* pool, uint64_t pool_len) :
 {
 }
 
-inline void Producer::MovePoint(const char *src, const uint64_t distance)
+inline void Producer::MovePoint(const char *src, const int64_t distance)
 {
-    if (pool_len_ < distance) {
-        // log_info("produce access one loop");
+    log_info("producer pool_len %ld distance %ld %ld", pool_len_, distance, pool_len_ - distance);
+    if (pool_len_ <= 0) {
         pool_len_ = kPoolSize;
         pool_ = origin_;
     }
-    memcpy(pool_, src, distance);
-    pool_ += distance;
-    pool_len_ -= distance;
 
+    if (pool_len_ < distance) {
+        /*
+         * jump to the next block
+         */
+        pool_ = origin_ + ((((pool_ - origin_ + 1) / kPoolSize) + 1) * kBlockSize) % kPoolSize;
+        pool_len_ = kPoolSize - (pool_ - origin_);
+        // log_info("produce access one loop");
+    } else {
+        memcpy(pool_, src, distance);
+        pool_ += distance;
+        pool_len_ -= distance;
+    }
 }
 
 Status Producer::EmitMemoryRecord(RecordType t, const char* ptr, size_t n)
@@ -43,7 +52,7 @@ Status Producer::EmitMemoryRecord(RecordType t, const char* ptr, size_t n)
     MovePoint(ptr, static_cast<uint64_t>(n));
 
     // log_info("pool_len = %d\n", pool_len_);
-    block_offset_ += kHeaderSize + n;
+    block_offset_ += static_cast<int>(kHeaderSize + n);
     return s;
 }
 #endif
@@ -81,7 +90,7 @@ Status Producer::EmitPhysicalRecord(RecordType t, const char *ptr, size_t n)
             s = queue_->Flush();
         }
     }
-    block_offset_ += kHeaderSize + n;
+    block_offset_ += static_cast<int>(kHeaderSize + n);
     // log_info("block_offset %d", (kHeaderSize + n));
     version_->rise_pro_offset((uint64_t)(kHeaderSize + n));
     version_->StableSave();
@@ -102,7 +111,7 @@ Status Producer::Produce(const Slice &item)
     size_t left = item.size();
     bool begin = true;
     do {
-        const int leftover = kBlockSize - block_offset_;
+        const int leftover = static_cast<int>(kBlockSize) - block_offset_;
         assert(leftover >= 0);
         if (static_cast<size_t>(leftover) < kHeaderSize) {
             if (leftover > 0) {

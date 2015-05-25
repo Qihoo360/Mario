@@ -46,6 +46,7 @@ Mario::Mario(uint32_t consumer_num, Consumer::Handler *h, int32_t retry)
     pool_ = (char *)malloc(sizeof(char) * kPoolSize);
     if (pool_ == NULL) {
         log_err("malloc error");
+        exit(-1);
     }
     producer_ = new Producer(pool_, kPoolSize);
     consumer_ = new Consumer(0, h, pool_, kPoolSize);

@@ -14,7 +14,7 @@ class Producer
 {
 public:
 #if defined(MARIO_MEMORY)
-    Producer(char* pool, uint64_t pool_len);
+    Producer(char* pool, int64_t pool_len);
 #endif
 
 #if defined(MARIO_MMAP)
@@ -26,10 +26,10 @@ public:
 private:
 #if defined(MARIO_MEMORY)
     Status EmitMemoryRecord(RecordType t, const char *ptr, size_t n);
-    inline void MovePoint(const char *src, const uint64_t distance);
+    inline void MovePoint(const char *src, const int64_t distance);
     char* pool_;
     char* origin_;
-    uint64_t pool_len_;
+    int64_t pool_len_;
 #endif
 
 #if defined(MARIO_MMAP)

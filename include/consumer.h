@@ -42,10 +42,9 @@ private:
 #if defined(MARIO_MEMORY)
     char* pool_;
     char* origin_;
-    uint64_t pool_len_;
+    int64_t pool_len_;
 
-    inline void CheckEnd(const uint64_t distance);
-    inline void ConsumeData(const int distance);
+    inline void ConsumeData(const int64_t distance);
     unsigned int ReadMemoryRecord(Slice *fragment);
 
 #endif
