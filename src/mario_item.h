@@ -29,7 +29,7 @@ static const size_t kHeaderSize = 1 + 3;
  * the size of memory when we use memory mode
  * the default memory size is 2GB
  */
-static const int64_t kPoolSize = kBlockSize * 1024 * 1024 * 2 / 64;
+static const int64_t kPoolSize = 1073741824;
 
 /*
  * The size of write2file when we need to rotate
