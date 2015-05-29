@@ -18,7 +18,7 @@ enum RecordType {
  * the block size that we read and write from write2file
  * the default size is 64KB
  */
-static const size_t kBlockSize = 64 * 1024 * 1024;
+static const size_t kBlockSize = 64 * 1024;
 
 /*
  * Header is Type(1 byte), length (2 bytes)
