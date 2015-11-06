@@ -24,6 +24,7 @@ static const size_t kBlockSize = 64 * 1024;
  * Header is Type(1 byte), length (2 bytes)
  */
 static const size_t kHeaderSize = 1 + 3;
+extern 
 
 /*
  * the size of memory when we use memory mode

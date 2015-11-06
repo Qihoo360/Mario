@@ -12,7 +12,7 @@
 #include <machine/endian.h>
 #if defined(__DARWIN_LITTLE_ENDIAN) && defined(__DARWIN_BYTE_ORDER)
 #define PLATFORM_IS_LITTLE_ENDIAN \
-    (__DARWIN_BYTE_ORDER == __DARWIN_LITTLE_ENDIAN)
+  (__DARWIN_BYTE_ORDER == __DARWIN_LITTLE_ENDIAN)
 #endif
 #elif defined(OS_SOLARIS)
 #include <sys/isa_defs.h>
@@ -26,7 +26,7 @@
 #include <sys/endian.h>
 #define PLATFORM_IS_LITTLE_ENDIAN (_BYTE_ORDER == _LITTLE_ENDIAN)
 #elif defined(OS_OPENBSD) || defined(OS_NETBSD) ||\
-    defined(OS_DRAGONFLYBSD)
+  defined(OS_DRAGONFLYBSD)
 #include <sys/types.h>
 #include <sys/endian.h>
 #elif defined(OS_HPUX)
@@ -54,7 +54,7 @@
 #endif
 
 #if defined(OS_MACOSX) || defined(OS_SOLARIS) || defined(OS_FREEBSD) ||\
-    defined(OS_NETBSD) || defined(OS_OPENBSD) || defined(OS_DRAGONFLYBSD) ||\
+  defined(OS_NETBSD) || defined(OS_OPENBSD) || defined(OS_DRAGONFLYBSD) ||\
 defined(OS_ANDROID) || defined(OS_HPUX)
 // Use fread/fwrite/fflush on platforms without _unlocked variants
 #define fread_unlocked fread
@@ -63,7 +63,7 @@ defined(OS_ANDROID) || defined(OS_HPUX)
 #endif
 
 #if defined(OS_MACOSX) || defined(OS_FREEBSD) ||\
-    defined(OS_OPENBSD) || defined(OS_DRAGONFLYBSD)
+  defined(OS_OPENBSD) || defined(OS_DRAGONFLYBSD)
 // Use fsync() on platforms without fdatasync()
 #define fdatasync fsync
 #endif
@@ -75,7 +75,7 @@ defined(OS_ANDROID) || defined(OS_HPUX)
 #endif
 
 namespace mario {
-namespace port {
+  namespace port {
 
     static const bool kLittleEndian = PLATFORM_IS_LITTLE_ENDIAN;
 #undef PLATFORM_IS_LITTLE_ENDIAN
@@ -83,33 +83,33 @@ namespace port {
     class CondVar;
 
     class Mutex {
-        public:
-            Mutex();
-            ~Mutex();
+      public:
+        Mutex();
+        ~Mutex();
 
-            void Lock();
-            void Unlock();
-            void AssertHeld() { }
+        void Lock();
+        void Unlock();
+        void AssertHeld() { }
 
-        private:
-            friend class CondVar;
-            pthread_mutex_t mu_;
+      private:
+        friend class CondVar;
+        pthread_mutex_t mu_;
 
-            // No copying
-            Mutex(const Mutex&);
-            void operator=(const Mutex&);
+        // No copying
+        Mutex(const Mutex&);
+        void operator=(const Mutex&);
     };
 
     class CondVar {
-        public:
-            explicit CondVar(Mutex* mu);
-            ~CondVar();
-            void Wait();
-            void Signal();
-            void SignalAll();
-        private:
-            pthread_cond_t cv_;
-            Mutex* mu_;
+      public:
+        explicit CondVar(Mutex* mu);
+        ~CondVar();
+        void Wait();
+        void Signal();
+        void SignalAll();
+      private:
+        pthread_cond_t cv_;
+        Mutex* mu_;
     };
 
     typedef pthread_once_t OnceType;
@@ -122,7 +122,7 @@ namespace port {
     //     return false;
     // }
 
-} // namespace port
+  } // namespace port
 } // namespace mario
 
 #endif  // STORAGE_LEVELDB_PORT_PORT_POSIX_H_
