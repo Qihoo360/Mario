@@ -73,7 +73,7 @@ Mario::Mario(uint32_t consumer_num, Consumer::Handler *h, int32_t retry)
     version_ = new Version(versionfile_);
     version_->StableSave();
   } else {
-    log_info("Find the exist file ");
+    log_info("Find the manifest file ");
     s = env_->NewRWFile(manifest, &versionfile_);
     if (s.ok()) {
       version_ = new Version(versionfile_);
@@ -86,13 +86,32 @@ Mario::Mario(uint32_t consumer_num, Consumer::Handler *h, int32_t retry)
     }
     profile = NewFileName(filename_, pronum_);
     confile = NewFileName(filename_, connum_);
-    log_info("profile %s confile %s", profile.c_str(), confile.c_str());
-    env_->AppendWritableFile(profile, &writefile_, version_->pro_offset());
-    uint64_t filesize = writefile_->Filesize();
-    log_info("filesize %" PRIu64 "", filesize);
-    env_->AppendSequentialFile(confile, &readfile_);
+    if(!env_->FileExists(profile)){
+        pronum_ = pronum_ + 1;
+        profile = NewFileName(filename_, pronum_);
+        env_->NewWritableFile(profile, &writefile_);
+        version_->set_pro_offset(0);
+        version_->set_pronum(pronum_);
+        version_->StableSave();
+    } else{
+      env_->AppendWritableFile(profile, &writefile_, version_->pro_offset());
+      uint64_t filesize = writefile_->Filesize();
+      log_info("filesize %" PRIu64 "", filesize);
+    }
+    if(!env_->FileExists(confile)){
+      while(!env_->FileExists(confile) && connum_ < pronum_){
+          connum_ = connum_ + 1;
+          confile = NewFileName(filename_, connum_);
+      }
+      version_->set_connum(connum_);
+      version_->set_con_offset(0);
+      version_->StableSave();
+      env_->NewSequentialFile(confile, &readfile_);
+    } else
+      env_->AppendSequentialFile(confile, &readfile_);
   }
 
+  log_info("profile %s confile %s", profile.c_str(), confile.c_str());
   producer_ = new Producer(writefile_, version_);
   consumer_ = new Consumer(readfile_, h_, version_, connum_);
   env_->StartThread(&Mario::SplitLogWork, this);
@@ -207,6 +226,8 @@ void Mario::BackgroundCall()
           if (s.IsEndFile() && env_->FileExists(confile)) {
             // log_info("Rotate file ");
             delete readfile_;
+            std::string previousFile = NewFileName(filename_, connum_ );
+            env_->DeleteFile(previousFile);
             env_->AppendSequentialFile(confile, &readfile_);
             connum_++;
             delete consumer_;
