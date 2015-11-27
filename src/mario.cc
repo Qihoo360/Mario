@@ -87,7 +87,6 @@ Mario::Mario(uint32_t consumer_num, Consumer::Handler *h, int32_t retry)
     profile = NewFileName(filename_, pronum_);
     confile = NewFileName(filename_, connum_);
     if(!env_->FileExists(profile)){
-        pronum_ = pronum_ + 1;
         profile = NewFileName(filename_, pronum_);
         env_->NewWritableFile(profile, &writefile_);
         version_->set_pro_offset(0);
