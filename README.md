@@ -1,15 +1,15 @@
 ## Overview
 
-**A library that make the write from synchronous to asynchronous.**
+**A library that makes the write from synchronous to asynchronous.**
 
-It is thread safe and easily used.
+It is thread-safe and easily used.
 
 ## Idea
-The base idea of the Mario is that if you have operators that cost lots of time. But you want quickly return from the operator, and leave the work to the background.
+The Mario library helps when you want to quickly return from time-consuming operators and leave the work to the background.
 
-So mario library can easily solve your problem. You just need the implement your own consume message function. Then mario will create background thread do the other things.
+With Mario, you just need the implement your own consume message function and let Mario create background threads to do other stuff.
 
-#### Two engine type
+#### Two engine types
 
 * memory
 
